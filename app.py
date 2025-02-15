@@ -1,9 +1,40 @@
+import tkinter
+import sys
+from time import sleep
+import webbrowser
 import speech_recognition as sr
-import pyautogui
 import os
-import keyboard
 
-# 音声を認識してテキストに変換
+root = tkinter.Tk()
+root.title("Quick Bookmark")
+root.geometry("400x550")
+root.resizable(0, 0)
+
+def open_google():
+    sleep(0.5)
+    webbrowser.open("https://www.google.co.jp/")
+
+def open_youtube():
+    sleep(0.5)
+    webbrowser.open("https://www.youtube.com/")
+
+def open_qiita():
+    sleep(0.5)
+    webbrowser.open("https://qiita.com/")
+
+def open_twitter():
+    sleep(0.5)
+    webbrowser.open("https://twitter.com/")
+
+def open_yahoo():
+    sleep(0.5)
+    webbrowser.open("https://www.yahoo.co.jp/")
+
+def exit_app():
+    root.destroy()
+    sys.exit()
+
+# 音声認識
 def recognize_speech():
     recognizer = sr.Recognizer()
     try:
@@ -22,7 +53,7 @@ def recognize_speech():
         print(f"マイクが使用できません: {e}")
     return None
 
-# コマンドに基づいて操作を実行
+# コマンド処理
 def execute_command(command):
     if "ブラウザ" in command:
         print("ブラウザを開きます...")
@@ -40,16 +71,37 @@ def execute_command(command):
         pyautogui.screenshot("screenshot.png")
     elif "終了" in command:
         print("プログラムを終了します。")
-        return "終了"
+        exit_app()
     else:
         print("コマンドが認識されませんでした。")
-    return None
 
-# メインループ
+# GUI
+label = tkinter.Label(text="ブックマーク", background='#7fffd4', font=("MSゴシック", "30", "bold"), foreground='#000000')
+label.pack()
+
+button1 = tkinter.Button(text='Googleを開く', width=50, command=open_google)
+button1.pack()
+
+button2 = tkinter.Button(text='YouTubeを開く', width=50, command=open_youtube)
+button2.pack()
+
+button3 = tkinter.Button(text='Qiitaを開く', width=50, foreground="#00ff00", command=open_qiita)
+button3.pack()
+
+button4 = tkinter.Button(text='Twitterを開く', width=50, foreground="#00ffff", command=open_twitter)
+button4.pack()
+
+button5 = tkinter.Button(text='YahooJapanを開く', width=50, command=open_yahoo)
+button5.pack()
+
+button6 = tkinter.Button(text='終了', width=50, command=exit_app)
+button6.pack()
+
+root.mainloop()
+
+# 音声認識ループ
 if __name__ == "__main__":
     while True:
         command = recognize_speech()
         if command:
-            result = execute_command(command)
-            if result == "終了":
-                break
+            execute_command(command())
