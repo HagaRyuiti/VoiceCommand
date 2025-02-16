@@ -1,107 +1,114 @@
-import tkinter
-import sys
-from time import sleep
+import tkinter as tk
+import sqlite3
 import webbrowser
 import speech_recognition as sr
 import os
 
-root = tkinter.Tk()
-root.title("Quick Bookmark")
-root.geometry("400x550")
-root.resizable(0, 0)
 
-def open_google():
-    sleep(0.5)
-    webbrowser.open("https://www.google.co.jp/")
+# SQLite データベースの作成
+conn = sqlite3.connect("commands.db")
+cursor = conn.cursor()
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS commands (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    voice_command TEXT UNIQUE NOT NULL,
+    url TEXT
+)
+""")
+conn.commit()
 
-def open_youtube():
-    sleep(0.5)
-    webbrowser.open("https://www.youtube.com/")
+# Tkinter ウィンドウの作成
+root = tk.Tk()
+root.title("音声コマンド登録システム")
+root.geometry("500x400")
 
-def open_qiita():
-    sleep(0.5)
-    webbrowser.open("https://qiita.com/")
+# URL と 音声コマンドの入力欄
+tk.Label(root, text="音声コマンド").pack()
+command_entry = tk.Entry(root, width=50)
+command_entry.pack()
 
-def open_twitter():
-    sleep(0.5)
-    webbrowser.open("https://twitter.com/")
+tk.Label(root, text="URL").pack()
+url_entry = tk.Entry(root, width=50)
+url_entry.pack()
 
-def open_yahoo():
-    sleep(0.5)
-    webbrowser.open("https://www.yahoo.co.jp/")
+# データベースに登録
+def save_command():
+    command = command_entry.get()
+    url = url_entry.get()
+    
+    if command and url:
+        try:
+            cursor.execute("INSERT INTO commands (voice_command, url) VALUES (?, ?)", (command, url))
+            conn.commit()
+            status_label.config(text="登録完了！")
+            command_entry.delete(0, tk.END)
+            url_entry.delete(0, tk.END)
+            load_commands()
+        except sqlite3.IntegrityError:
+            status_label.config(text="エラー: 同じコマンドが既に存在します。")
+    else:
+        status_label.config(text="エラー: コマンドとURLを入力してください。")
 
-def exit_app():
-    root.destroy()
-    sys.exit()
+tk.Button(root, text="登録", command=save_command).pack()
 
-# 音声認識
+# 登録されたコマンドのリスト表示
+commands_listbox = tk.Listbox(root, width=50)
+commands_listbox.pack()
+
+def load_commands():
+    commands_listbox.delete(0, tk.END)
+    cursor.execute("SELECT voice_command, url FROM commands")
+    for row in cursor.fetchall():
+        commands_listbox.insert(tk.END, f"{row[0]} -> {row[1]}")
+
+load_commands()
+
+# ステータス表示
+status_label = tk.Label(root, text="")
+status_label.pack()
+
+# 音声認識でコマンド実行
 def recognize_speech():
     recognizer = sr.Recognizer()
-    try:
-        with sr.Microphone() as source:
-            print("操作コマンドを話してください...")
+    with sr.Microphone() as source:
+        print("音声コマンドを話してください...")
+        try:
             audio = recognizer.listen(source)
-            try:
-                command = recognizer.recognize_google(audio, language='ja-JP')
-                print(f"認識されたコマンド: {command}")
-                return command
-            except sr.UnknownValueError:
-                print("音声を認識できませんでした。")
-            except sr.RequestError as e:
-                print(f"Google Speech Recognition API エラー: {e}")
-    except OSError as e:
-        print(f"マイクが使用できません: {e}")
-    return None
+            command = recognizer.recognize_google(audio, language='ja-JP')
+            print(f"認識されたコマンド: {command}")
+            execute_command(command)
+        except sr.UnknownValueError:
+            print("音声を認識できませんでした。")
+        except sr.RequestError as e:
+            print(f"Google Speech Recognition API エラー: {e}")
 
-# コマンド処理
+# コマンド実行
 def execute_command(command):
-    if "ブラウザ" in command:
-        print("ブラウザを開きます...")
-        os.system("start chrome")  # Chromeを起動
+    cursor.execute("SELECT url FROM commands WHERE voice_command=?", (command,))
+    result = cursor.fetchone()
+    
+    if result:
+        print(f"登録されたURLを開きます: {result[0]}")
+        webbrowser.open(result[0])
     elif "音量を上げて" in command:
         print("音量を上げます...")
         for _ in range(5):
-            keyboard.press_and_release("volumeup")  # 音量アップ
+            keyboard.press_and_release("volumeup")
     elif "音量を下げて" in command:
         print("音量を下げます...")
         for _ in range(5):
-            keyboard.press_and_release("volumedown")  # 音量ダウン
+            keyboard.press_and_release("volumedown")
     elif "スクリーンショット" in command:
         print("スクリーンショットを撮影します...")
         pyautogui.screenshot("screenshot.png")
     elif "終了" in command:
         print("プログラムを終了します。")
-        exit_app()
+        root.quit()
     else:
         print("コマンドが認識されませんでした。")
 
-# GUI
-label = tkinter.Label(text="ブックマーク", background='#7fffd4', font=("MSゴシック", "30", "bold"), foreground='#000000')
-label.pack()
+# 音声認識ボタン
+tk.Button(root, text="音声認識開始", command=recognize_speech).pack()
 
-button1 = tkinter.Button(text='Googleを開く', width=50, command=open_google)
-button1.pack()
-
-button2 = tkinter.Button(text='YouTubeを開く', width=50, command=open_youtube)
-button2.pack()
-
-button3 = tkinter.Button(text='Qiitaを開く', width=50, foreground="#00ff00", command=open_qiita)
-button3.pack()
-
-button4 = tkinter.Button(text='Twitterを開く', width=50, foreground="#00ffff", command=open_twitter)
-button4.pack()
-
-button5 = tkinter.Button(text='YahooJapanを開く', width=50, command=open_yahoo)
-button5.pack()
-
-button6 = tkinter.Button(text='終了', width=50, command=exit_app)
-button6.pack()
-
+# メインループ開始
 root.mainloop()
-
-# 音声認識ループ
-if __name__ == "__main__":
-    while True:
-        command = recognize_speech()
-        if command:
-            execute_command(command())
