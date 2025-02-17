@@ -90,17 +90,6 @@ def execute_command(command):
     if result:
         print(f"登録されたURLを開きます: {result[0]}")
         webbrowser.open(result[0])
-    elif "音量を上げて" in command:
-        print("音量を上げます...")
-        for _ in range(5):
-            keyboard.press_and_release("volumeup")
-    elif "音量を下げて" in command:
-        print("音量を下げます...")
-        for _ in range(5):
-            keyboard.press_and_release("volumedown")
-    elif "スクリーンショット" in command:
-        print("スクリーンショットを撮影します...")
-        pyautogui.screenshot("screenshot.png")
     elif "終了" in command:
         print("プログラムを終了します。")
         root.quit()
